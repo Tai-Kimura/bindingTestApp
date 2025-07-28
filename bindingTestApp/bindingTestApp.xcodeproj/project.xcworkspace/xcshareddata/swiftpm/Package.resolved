@@ -1,0 +1,15 @@
+{
+  "originHash" : "1fbf9b3d2af5f6a97ff382482c855d393ed793b2b472e7aab10910fbfe42ac4b",
+  "pins" : [
+    {
+      "identity" : "swiftjsonui",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Tai-Kimura/SwiftJsonUI",
+      "state" : {
+        "revision" : "0b0fb1bac0055c04650028c50bbe5e2cb5674af6",
+        "version" : "5.3.0"
+      }
+    }
+  ],
+  "version" : 3
+}

@@ -1,0 +1,512 @@
+#!/usr/bin/env bash
+
+# SJUI Command-line Tool
+# Usage: sjui <command> [args...]
+
+if [ $# -eq 0 ]; then
+    echo "Usage: sjui [--project <project_name>] <command> [subcommand] [args...]"
+    echo ""
+    echo "Options:"
+    echo "  --project <name>      Specify project name when multiple .xcodeproj exist"
+    echo ""
+    echo "Available commands:"
+    echo "  init                  Initialize config.json file"
+    echo "  setup                 Create directories and add them to Xcode project"
+    echo "  g view <view_name> [--root]    Generate view controller and layout files"
+    echo "  generate view <name> [--root]  Generate view controller and layout files (alias for g)"
+    echo "  d view <view_name>    Destroy view controller and layout files"
+    echo "  destroy view <name>   Destroy view controller and layout files (alias for d)"
+    echo "  b                     Build binding files from JSON layouts"
+    echo "  build                 Build binding files from JSON layouts (alias for b)"
+    echo "  hotload <command>     Manage HotLoader IP monitoring"
+    echo ""
+    echo ""
+    echo "HotLoad commands:"
+    echo "  hotload listen        Start HotLoad server and IP monitor (full development environment)"
+    echo "  hotload start         Start IP monitor (foreground)"
+    echo "  hotload daemon        Start IP monitor (background)"
+    echo "  hotload stop          Stop HotLoad server and IP monitor"
+    echo "  hotload status        Show IP monitor status"
+    echo "  hotload update        Force update Info.plist with current IP"
+    echo ""
+    echo "Examples:"
+    echo "  sjui init"
+    echo "  sjui setup"
+    echo "  sjui g view sample"
+    echo "  sjui generate view sample"
+    echo "  sjui d view sample"
+    echo "  sjui destroy view sample"
+    echo "  sjui b"
+    echo "  sjui build"
+    echo "  sjui hotload listen"
+    echo "  sjui hotload daemon"
+    echo "  sjui hotload status"
+    echo "  sjui hotload stop"
+    echo ""
+    echo "  sjui --project MyProject g view sample"
+    echo "  sjui --project AnotherApp build"
+    exit 1
+fi
+
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Parse options
+PROJECT_NAME=""
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --project)
+            PROJECT_NAME="$2"
+            shift 2
+            ;;
+        *)
+            break
+            ;;
+    esac
+done
+
+# Create a temporary Ruby script to find project file
+PROJECT_FINDER_SCRIPT=$(cat << EOF
+require '$SCRIPT_DIR/project_finder'
+require 'json'
+
+begin
+  project_name = ARGV[1] # プロジェクト名（オプション）
+  search_dir = ARGV[0] || Dir.pwd
+  config_file = File.join(search_dir, 'config.json')
+  
+  # Try to read config.json if no project name specified
+  if (!project_name || project_name.empty?) && File.exist?(config_file)
+    begin
+      config = JSON.parse(File.read(config_file))
+      stored_project_name = config['project_file_name']
+      
+      # Use stored project name if it exists
+      if stored_project_name && !stored_project_name.empty?
+        project_file = ProjectFinder.find_project_file_by_name(search_dir, stored_project_name)
+        puts project_file
+        exit 0
+      end
+    rescue JSON::ParserError
+      # Ignore JSON parsing errors and fallback to normal search
+    end
+  end
+  
+  # Fallback to normal project finding logic
+  if project_name && !project_name.empty?
+    project_file = ProjectFinder.find_project_file_by_name(search_dir, project_name)
+  else
+    project_file = ProjectFinder.find_project_file(search_dir)
+  end
+  puts project_file
+rescue => e
+  STDERR.puts "Error: #{e.message}"
+  exit 1
+end
+EOF
+)
+
+# Find project file
+PROJECT_FILE=$(echo "$PROJECT_FINDER_SCRIPT" | ruby - "$SCRIPT_DIR" "$PROJECT_NAME")
+if [ $? -ne 0 ]; then
+    echo "Failed to find Xcode project file"
+    exit 1
+fi
+
+# Ensure we have the .xcodeproj directory, not the .pbxproj file
+if [[ "$PROJECT_FILE" == *"project.pbxproj" ]]; then
+    PROJECT_FILE=$(dirname "$PROJECT_FILE")
+fi
+
+COMMAND="$1"
+shift
+
+case "$COMMAND" in
+    "init")
+        # Create config.json file
+        CONFIG_FILE="$SCRIPT_DIR/config.json"
+        if [ -f "$CONFIG_FILE" ]; then
+            echo "config.json already exists at $CONFIG_FILE"
+            read -p "Do you want to overwrite it? (y/N): " -n 1 -r
+            echo
+            if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+                echo "Initialization cancelled."
+                exit 0
+            fi
+        fi
+        
+        # Find project file to set as default
+        FOUND_PROJECT_FILE=$(echo "$PROJECT_FINDER_SCRIPT" | ruby - "$SCRIPT_DIR" "")
+        if [ $? -ne 0 ]; then
+            echo "Warning: Could not find Xcode project file. Setting project_file_name to empty string."
+            FOUND_PROJECT_NAME=""
+            SOURCE_DIR=""
+            HOT_LOADER_DIR=""
+        else
+            # Extract project name from file path (e.g., pango.xcodeproj -> pango)
+            FOUND_PROJECT_NAME=$(basename "$FOUND_PROJECT_FILE" .xcodeproj | sed 's/\.xcodeproj$//')
+            if [ "$FOUND_PROJECT_NAME" = "project.pbxproj" ]; then
+                # Handle case where we get the .pbxproj file path
+                PARENT_DIR=$(dirname "$FOUND_PROJECT_FILE")
+                FOUND_PROJECT_NAME=$(basename "$PARENT_DIR" .xcodeproj)
+            fi
+            
+            # Detect source_directory based on project structure
+            BINDING_BUILDER_PARENT=$(dirname "$SCRIPT_DIR")
+            
+            # The source directory is the directory containing the iOS app files
+            # Check if the parent directory contains iOS app files
+            if [ -f "$BINDING_BUILDER_PARENT/Info.plist" -o -f "$BINDING_BUILDER_PARENT/AppDelegate.swift" -o -f "$BINDING_BUILDER_PARENT/SceneDelegate.swift" ]; then
+                # If iOS files are in the same directory as binding_builder, use the directory name
+                SOURCE_DIR=$(basename "$BINDING_BUILDER_PARENT")
+                HOT_LOADER_DIR=$(basename "$BINDING_BUILDER_PARENT")
+            else
+                # Look for subdirectories containing iOS app files
+                for dir in "$BINDING_BUILDER_PARENT"/*; do
+                    if [ -d "$dir" ] && [ "$(basename "$dir")" != "binding_builder" ] && [ -f "$dir/Info.plist" -o -f "$dir/AppDelegate.swift" -o -f "$dir/SceneDelegate.swift" ]; then
+                        SOURCE_DIR=$(basename "$dir")
+                        HOT_LOADER_DIR=$(basename "$dir")
+                        break
+                    fi
+                done
+                
+                if [ -z "$SOURCE_DIR" ]; then
+                    SOURCE_DIR=""
+                    HOT_LOADER_DIR=""
+                fi
+            fi
+        fi
+        
+        
+        cat > "$CONFIG_FILE" << EOF
+{
+  "project_name": "$FOUND_PROJECT_NAME",
+  "project_file_name": "$FOUND_PROJECT_NAME",
+  "source_directory": "$SOURCE_DIR",
+  "layouts_directory": "Layouts",
+  "bindings_directory": "Bindings",
+  "view_directory": "View",
+  "styles_directory": "Styles",
+  "build_settings": {
+    "auto_build": false,
+    "clean_before_build": false
+  },
+  "generator_settings": {
+    "create_layout_file": true,
+    "create_binding_file": true,
+    "add_to_xcode_project": true
+  },
+  "custom_view_types": {
+    "_comment": "カスタムビュータイプの設定例:",
+    "_example": {
+      "CustomButton": {
+        "class_name": "UIButton",
+        "import_module": "UIKit"
+      },
+      "WebView": {
+        "class_name": "WKWebView", 
+        "import_module": "WebKit"
+      }
+    }
+  },
+  "hot_loader_directory": "$HOT_LOADER_DIR"
+}
+EOF
+        echo "config.json created successfully at $CONFIG_FILE"
+        if [ -n "$FOUND_PROJECT_NAME" ]; then
+            echo "Project name set to: $FOUND_PROJECT_NAME"
+        fi
+        ;;
+    "setup")
+        # Execute the Ruby directory setup script with project file path
+        # DirectorySetup needs the full project.pbxproj path, not just the .xcodeproj directory
+        SETUP_PROJECT_FILE="$PROJECT_FILE/project.pbxproj"
+        ruby -e "
+require '$SCRIPT_DIR/xcode_project/setup/directory_setup'
+setup = DirectorySetup.new(\"$SETUP_PROJECT_FILE\")
+setup.create_missing_directories
+"
+        ;;
+    "g"|"generate")
+        SUBCOMMAND="$1"
+        shift
+        case "$SUBCOMMAND" in
+            "view")
+                if [ $# -eq 0 ]; then
+                    echo "Usage: sjui $COMMAND view <view_name> [--root]"
+                    echo "Example: sjui $COMMAND view sample"
+                    echo "Example: sjui $COMMAND view sample --root"
+                    exit 1
+                fi
+                
+                VIEW_NAME="$1"
+                IS_ROOT="false"
+                shift
+                
+                # Parse additional options
+                while [[ $# -gt 0 ]]; do
+                    case $1 in
+                        --root)
+                            IS_ROOT="true"
+                            shift
+                            ;;
+                        *)
+                            echo "Unknown option: $1"
+                            exit 1
+                            ;;
+                    esac
+                done
+                
+                # Execute the Ruby view generator with project file path
+                # ViewGenerator needs the full project.pbxproj path, not just the .xcodeproj directory
+                VIEW_GEN_PROJECT_FILE="$PROJECT_FILE/project.pbxproj"
+                ruby -e "
+require '$SCRIPT_DIR/xcode_project/generators/view_generator'
+generator = ViewGenerator.new('$VIEW_GEN_PROJECT_FILE')
+generator.generate('$VIEW_NAME', $IS_ROOT)
+"
+                ;;
+            *)
+                echo "Unknown subcommand: $SUBCOMMAND"
+                echo "Available subcommands for '$COMMAND':"
+                echo "  view <view_name>    Generate view controller and layout files"
+                exit 1
+                ;;
+        esac
+        ;;
+    "d"|"destroy")
+        SUBCOMMAND="$1"
+        shift
+        case "$SUBCOMMAND" in
+            "view")
+                if [ $# -eq 0 ]; then
+                    echo "Usage: sjui $COMMAND view <view_name>"
+                    echo "Example: sjui $COMMAND view sample"
+                    exit 1
+                fi
+                # Execute the Ruby view destroyer with project file path
+                # ViewDestroyer needs the full project.pbxproj path, not just the .xcodeproj directory
+                VIEW_DEST_PROJECT_FILE="$PROJECT_FILE/project.pbxproj"
+                ruby -e "
+require '$SCRIPT_DIR/xcode_project/destroyers/view_destroyer'
+destroyer = ViewDestroyer.new('$VIEW_DEST_PROJECT_FILE')
+destroyer.destroy('$1')
+"
+                ;;
+            *)
+                echo "Unknown subcommand: $SUBCOMMAND"
+                echo "Available subcommands for '$COMMAND':"
+                echo "  view <view_name>    Destroy view controller and layout files"
+                exit 1
+                ;;
+        esac
+        ;;
+    "b"|"build")
+        # Execute the Ruby build script with project file path
+        ruby -e "
+require '$SCRIPT_DIR/json_loader'
+require '$SCRIPT_DIR/project_finder'
+require '$SCRIPT_DIR/import_module_manager'
+require '$SCRIPT_DIR/config_manager'
+
+# configから カスタムビュータイプを読み込んで設定
+custom_view_types = ConfigManager.get_custom_view_types('$SCRIPT_DIR')
+
+# カスタムビュータイプを設定
+view_type_mappings = {}
+import_mappings = {}
+
+custom_view_types.each do |view_type, config|
+  if config['class_name']
+    view_type_mappings[view_type.to_sym] = config['class_name']
+  end
+  if config['import_module']
+    import_mappings[view_type] = config['import_module']
+  end
+end
+
+# View typeの拡張
+JsonLoader.view_type_set.merge!(view_type_mappings) unless view_type_mappings.empty?
+
+# Importマッピングの追加
+import_mappings.each do |type, module_name|
+  ImportModuleManager.add_type_import_mapping(type, module_name)
+end
+
+# JsonLoader needs the full project.pbxproj path, not just the .xcodeproj directory
+BUILD_PROJECT_FILE = '$PROJECT_FILE/project.pbxproj'
+loader = JsonLoader.new(nil, BUILD_PROJECT_FILE)
+loader.start_analyze
+"
+        ;;
+    "hotload")
+        HOTLOAD_COMMAND="$1"
+        IP_MONITOR_SCRIPT="$SCRIPT_DIR/scripts/ip_monitor.sh"
+        
+        if [ ! -f "$IP_MONITOR_SCRIPT" ]; then
+            echo "Error: IP monitor script not found at $IP_MONITOR_SCRIPT"
+            exit 1
+        fi
+        
+        case "$HOTLOAD_COMMAND" in
+            "start")
+                echo "Starting IP monitor (foreground)..."
+                "$IP_MONITOR_SCRIPT" start
+                ;;
+            "daemon")
+                echo "Starting IP monitor (background)..."
+                "$IP_MONITOR_SCRIPT" daemon
+                ;;
+            "listen")
+                echo "🚀 Starting HotLoad development environment..."
+                echo ""
+                
+                # Step 1: Update Info.plist with current IP
+                echo "📝 Updating Info.plist with current IP..."
+                "$IP_MONITOR_SCRIPT" update
+                
+                # Step 2: Start Node.js HotLoad server
+                echo "🔥 Starting HotLoad server..."
+                HOTLOAD_BUILD_SCRIPT="$SCRIPT_DIR/scripts/hotload_build_phase.sh"
+                
+                if [ ! -f "$HOTLOAD_BUILD_SCRIPT" ]; then
+                    echo "❌ Error: HotLoad build script not found at $HOTLOAD_BUILD_SCRIPT"
+                    exit 1
+                fi
+                
+                # Set required environment variables for the script
+                export CONFIGURATION="Debug"
+                PROJECT_DIR_PARENT="$(dirname "$PROJECT_FILE")"
+                export PROJECT_DIR="$PROJECT_DIR_PARENT/$(basename "$PROJECT_FILE" .xcodeproj)"
+                export INFOPLIST_FILE="Info.plist"
+                
+                # Execute the HotLoad build script
+                "$HOTLOAD_BUILD_SCRIPT"
+                
+                # Step 3: Start IP monitor in background
+                echo "🔄 Starting IP monitor daemon..."
+                "$IP_MONITOR_SCRIPT" daemon
+                
+                echo ""
+                echo "✅ HotLoad development environment started successfully!"
+                echo ""
+                echo "📊 Status:"
+                echo "   - HotLoad server is running on port 8081"
+                echo "   - IP monitor is running in background"
+                echo "   - Layout files will auto-reload when changed"
+                echo ""
+                echo "🛠️  Management commands:"
+                echo "   - Use 'sjui hotload status' to check status"
+                echo "   - Use 'sjui hotload stop' to stop all services"
+                ;;
+            "stop")
+                echo "🛑 Stopping HotLoad development environment..."
+                echo ""
+                
+                # Stop IP monitor
+                echo "Stopping IP monitor..."
+                "$IP_MONITOR_SCRIPT" stop
+                
+                # Stop Node.js server (port 8081)
+                echo "Stopping HotLoad server..."
+                NODE_PID=$(lsof -ti:8081 2>/dev/null)
+                if [ -n "$NODE_PID" ]; then
+                    kill $NODE_PID 2>/dev/null
+                    if [ $? -eq 0 ]; then
+                        echo "✅ HotLoad server stopped (PID: $NODE_PID)"
+                    else
+                        echo "⚠️  Failed to stop HotLoad server"
+                    fi
+                else
+                    echo "ℹ️  HotLoad server was not running"
+                fi
+                
+                # Stop any remaining Node.js processes related to HotLoad
+                echo "Cleaning up any remaining HotLoad processes..."
+                pkill -f "node.*server.js" 2>/dev/null
+                pkill -f "node.*layout_loader.js" 2>/dev/null
+                
+                echo ""
+                echo "✅ HotLoad development environment stopped"
+                ;;
+            "status")
+                echo "📊 HotLoad Development Environment Status"
+                echo "========================================"
+                echo ""
+                
+                # IP Monitor status
+                echo "🔄 IP Monitor:"
+                "$IP_MONITOR_SCRIPT" status
+                echo ""
+                
+                # Node.js HotLoad server status
+                echo "🔥 HotLoad Server:"
+                NODE_PID=$(lsof -ti:8081 2>/dev/null)
+                if [ -n "$NODE_PID" ]; then
+                    echo "   ✅ Status: Running (PID: $NODE_PID)"
+                    echo "   🌐 Port: 8081"
+                    
+                    # Get current IP from Info.plist
+                    PROJECT_DIR_PARENT="$(dirname "$PROJECT_FILE")"
+                    PROJECT_DIR_NAME="$(basename "$PROJECT_FILE" .xcodeproj)"
+                    PLIST_PATH="$PROJECT_DIR_PARENT/$PROJECT_DIR_NAME/Info.plist"
+                    
+                    if [ -f "$PLIST_PATH" ]; then
+                        CURRENT_IP=$(/usr/libexec/PlistBuddy -c "Print :CurrentIp" "$PLIST_PATH" 2>/dev/null || echo "Unknown")
+                        echo "   🌍 Server URL: http://$CURRENT_IP:8081"
+                    fi
+                    
+                    # Check for specific Node.js processes
+                    SERVER_JS_PID=$(pgrep -f "node.*server.js" 2>/dev/null)
+                    LAYOUT_LOADER_PID=$(pgrep -f "node.*layout_loader.js" 2>/dev/null)
+                    
+                    if [ -n "$SERVER_JS_PID" ]; then
+                        echo "   📡 server.js: Running (PID: $SERVER_JS_PID)"
+                    else
+                        echo "   📡 server.js: Not detected"
+                    fi
+                    
+                    if [ -n "$LAYOUT_LOADER_PID" ]; then
+                        echo "   📁 layout_loader.js: Running (PID: $LAYOUT_LOADER_PID)"
+                    else
+                        echo "   📁 layout_loader.js: Not detected"
+                    fi
+                else
+                    echo "   ❌ Status: Not running"
+                    echo "   💡 Use 'sjui hotload listen' to start the HotLoad server"
+                fi
+                
+                echo ""
+                echo "🛠️  Management Commands:"
+                echo "   • sjui hotload listen  - Start full development environment"
+                echo "   • sjui hotload stop    - Stop all HotLoad services"
+                echo "   • sjui hotload update  - Update IP address in Info.plist"
+                ;;
+            "update")
+                echo "Force updating Info.plist with current IP..."
+                "$IP_MONITOR_SCRIPT" update
+                ;;
+            "")
+                echo "Usage: sjui hotload <command>"
+                echo "Available hotload commands:"
+                echo "  listen   Start HotLoad server and IP monitor (full development environment)"
+                echo "  start    Start IP monitor (foreground)"
+                echo "  daemon   Start IP monitor (background)"
+                echo "  stop     Stop HotLoad server and IP monitor"
+                echo "  status   Show IP monitor status"
+                echo "  update   Force update Info.plist with current IP"
+                exit 1
+                ;;
+            *)
+                echo "Unknown hotload command: $HOTLOAD_COMMAND"
+                echo "Run 'sjui hotload' to see available commands"
+                exit 1
+                ;;
+        esac
+        ;;
+    *)
+        echo "Unknown command: $COMMAND"
+        echo "Run 'sjui' without arguments to see available commands"
+        exit 1
+        ;;
+esac

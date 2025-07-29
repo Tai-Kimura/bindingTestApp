@@ -109,16 +109,6 @@ class Setup < PbxprojManager
     content = content.gsub(/\s*<key>UISceneStoryboardFile<\/key>\s*\n\s*<string>.*?<\/string>\s*\n/, "")
     content
   end
-
-  def setup_membership_exceptions
-    puts "Setting up membership exceptions..."
-    
-    safe_pbxproj_operation([], []) do
-      # membershipExceptionsの設定処理
-      # 既存の実装を基に必要な処理を実装
-      puts "Membership exceptions configured successfully"
-    end
-  end
 end
 
 # コマンドライン実行

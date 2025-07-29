@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		B6A4A38E2E371DC9000F6224 /* SwiftJsonUI in Frameworks */ = {isa = PBXBuildFile; productRef = 97D74A2C004F5969F8F4A999 /* SwiftJsonUI */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		B6A479A12E364F1F000F6224 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -65,6 +69,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B6A4A38E2E371DC9000F6224 /* SwiftJsonUI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -125,6 +130,7 @@
 			);
 			name = bindingTestApp;
 			packageProductDependencies = (
+				97D74A2C004F5969F8F4A999 /* SwiftJsonUI */,
 			);
 			productName = bindingTestApp;
 			productReference = B6A479872E364F1C000F6224 /* bindingTestApp.app */;
@@ -209,6 +215,7 @@
 			mainGroup = B6A4797E2E364F1C000F6224;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				BDDC79ED788DCB9F55ADD1B9 /* XCRemoteSwiftPackageReference "SwiftJsonUI" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = B6A479882E364F1C000F6224 /* Products */;
@@ -593,6 +600,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		BDDC79ED788DCB9F55ADD1B9 /* XCRemoteSwiftPackageReference "SwiftJsonUI" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Tai-Kimura/SwiftJsonUI";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.3.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		97D74A2C004F5969F8F4A999 /* SwiftJsonUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BDDC79ED788DCB9F55ADD1B9 /* XCRemoteSwiftPackageReference "SwiftJsonUI" */;
+			productName = SwiftJsonUI;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = B6A4797F2E364F1C000F6224 /* Project object */;
 }

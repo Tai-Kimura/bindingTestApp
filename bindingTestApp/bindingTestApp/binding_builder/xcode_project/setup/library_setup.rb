@@ -193,13 +193,13 @@ class LibrarySetup < PbxprojManager
         # 既存のセクションに追加
         content = content.gsub(
           /(\/* Begin XCRemoteSwiftPackageReference section \*\/.*?)([\s\S]*?)(\n\/* End XCRemoteSwiftPackageReference section \*\/)/m,
-          "\\1\\2\n\t\t#{package_ref_uuid} /* XCRemoteSwiftPackageReference \"SimpleApiNetwork\" */ = {\n\t\t\tisa = XCRemoteSwiftPackageReference;\n\t\t\trepositoryURL = \"https://github.com/Tai-Kimura/SimpleApiNetwork\";\n\t\t\trequirement = {\n\t\t\t\tkind = upToNextMajorVersion;\n\t\t\t\tminimumVersion = 1.0.0;\n\t\t\t};\n\t\t};\\3"
+          "\\1\\2\n\t\t#{package_ref_uuid} /* XCRemoteSwiftPackageReference \"SimpleApiNetwork\" */ = {\n\t\t\tisa = XCRemoteSwiftPackageReference;\n\t\t\trepositoryURL = \"https://github.com/Tai-Kimura/SimpleApiNetwork\";\n\t\t\trequirement = {\n\t\t\t\tkind = upToNextMajorVersion;\n\t\t\t\tminimumVersion = 2.1.8;\n\t\t\t};\n\t\t};\\3"
         )
       else
         # 新しいセクションを作成
         content = content.gsub(
           /(\/* End XCSwiftPackageProductDependency section \*\/)/,
-          "\\1\n\n/* Begin XCRemoteSwiftPackageReference section */\n\t\t#{package_ref_uuid} /* XCRemoteSwiftPackageReference \"SimpleApiNetwork\" */ = {\n\t\t\tisa = XCRemoteSwiftPackageReference;\n\t\t\trepositoryURL = \"https://github.com/Tai-Kimura/SimpleApiNetwork\";\n\t\t\trequirement = {\n\t\t\t\tkind = upToNextMajorVersion;\n\t\t\t\tminimumVersion = 1.0.0;\n\t\t\t};\n\t\t};\n/* End XCRemoteSwiftPackageReference section */"
+          "\\1\n\n/* Begin XCRemoteSwiftPackageReference section */\n\t\t#{package_ref_uuid} /* XCRemoteSwiftPackageReference \"SimpleApiNetwork\" */ = {\n\t\t\tisa = XCRemoteSwiftPackageReference;\n\t\t\trepositoryURL = \"https://github.com/Tai-Kimura/SimpleApiNetwork\";\n\t\t\trequirement = {\n\t\t\t\tkind = upToNextMajorVersion;\n\t\t\t\tminimumVersion = 2.1.8;\n\t\t\t};\n\t\t};\n/* End XCRemoteSwiftPackageReference section */"
         )
       end
       

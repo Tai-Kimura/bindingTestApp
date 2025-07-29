@@ -41,6 +41,9 @@ sjui g view sample          # Viewファイル群生成
 sjui g view splash --root   # ルートViewController指定
 sjui d view sample          # Viewファイル群削除
 
+# CollectionViewCell開発
+sjui g collection <ViewFolder>/<CellName>  # CollectionViewCell生成
+
 # バインディング生成
 sjui build     # JSONからBindingクラス自動生成
 ```
@@ -125,7 +128,16 @@ cd binding_builder
 # - Bindings/SampleBinding.swift (buildコマンド実行時)
 ```
 
-### 3. レイアウト定義
+### 3. CollectionViewCell作成
+```bash
+./sjui g collection Sample/ProductList
+# 以下が自動生成される:
+# - View/Sample/Collection/ProductListCollectionViewCell.swift
+# - Layouts/product_list_cell.json
+# - Bindings/ProductListCellBinding.swift (自動実行)
+```
+
+### 4. レイアウト定義
 ```json
 // Layouts/sample.json を編集
 {
@@ -142,13 +154,13 @@ cd binding_builder
 }
 ```
 
-### 4. バインディング生成
+### 5. バインディング生成
 ```bash
 ./sjui build
 # SampleBinding.swift が自動更新される
 ```
 
-### 5. ビジネスロジック実装
+### 6. ビジネスロジック実装
 ```swift
 // SampleViewController.swift
 class SampleViewController: BaseViewController {
@@ -157,6 +169,136 @@ class SampleViewController: BaseViewController {
         super.viewDidLoad()
         // UIViewCreator.createViewで自動レイアウト
         // _binding.submitButton でUIアクセス可能
+    }
+}
+```
+
+## CollectionViewCell開発
+
+### 概要
+
+binding_builderは、UICollectionViewで使用するカスタムセルの開発も自動化します。BaseCollectionViewCellを継承したセルクラス、対応するJSONレイアウト、バインディングクラスを一括生成します。
+
+### 生成されるファイル構造
+
+```
+View/
+└── Sample/
+    └── Collection/
+        └── ProductListCollectionViewCell.swift
+Layouts/
+└── product_list_cell.json
+Bindings/
+└── ProductListCellBinding.swift
+```
+
+### 自動生成されるCollectionViewCell
+
+```swift
+// ProductListCollectionViewCell.swift
+import UIKit
+import SwiftJsonUI
+
+class ProductListCollectionViewCell: BaseCollectionViewCell {
+    
+    static let cellIdentifier = "ProductListCollectionViewCell"
+    
+    private lazy var _binding = ProductListCellBinding(viewHolder: self)
+    
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        if let view = UIViewCreator.createView("product_list_cell", target: self) {
+            self.contentView.addSubview(view)
+            self._binding.bindView()
+        }
+    }
+    
+    required init?(coder aDecoder: NSCoder) {
+        super.init(coder: aDecoder)
+    }
+}
+```
+
+### CollectionViewでの使用例
+
+```swift
+// UICollectionViewでの登録・使用
+class SampleViewController: BaseViewController {
+    @IBOutlet weak var collectionView: UICollectionView!
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        
+        // セルの登録
+        collectionView.register(
+            ProductListCollectionViewCell.self,
+            forCellWithReuseIdentifier: ProductListCollectionViewCell.cellIdentifier
+        )
+    }
+}
+
+extension SampleViewController: UICollectionViewDataSource {
+    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+        let cell = collectionView.dequeueReusableCell(
+            withReuseIdentifier: ProductListCollectionViewCell.cellIdentifier,
+            for: indexPath
+        ) as! ProductListCollectionViewCell
+        
+        // セルのバインディングを通じてデータ設定
+        // cell._binding.titleLabel.text = data.title
+        
+        return cell
+    }
+}
+```
+
+### JSONレイアウト例
+
+```json
+// product_list_cell.json
+{
+  "type": "View",
+  "id": "cell_view",
+  "width": "matchParent",
+  "height": "wrapContent",
+  "padding": "16",
+  "background": "FFFFFF",
+  "child": [
+    {
+      "type": "Label",
+      "id": "title_label",
+      "text": "Product Title",
+      "textSize": "16",
+      "textColor": "000000"
+    },
+    {
+      "type": "Label", 
+      "id": "price_label",
+      "text": "¥1000",
+      "textSize": "14",
+      "textColor": "666666"
+    }
+  ]
+}
+```
+
+### BaseCollectionViewCell
+
+```swift
+// 自動生成されるベースクラス
+class BaseCollectionViewCell: SJUICollectionViewCell {
+    var index: Int = 0
+    
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+    }
+    
+    required init?(coder aDecoder: NSCoder) {
+        super.init(coder: aDecoder)
+    }
+    
+    override func preferredLayoutAttributesFitting(_ layoutAttributes: UICollectionViewLayoutAttributes) -> UICollectionViewLayoutAttributes {
+        return layoutAttributes
     }
 }
 ```
@@ -316,9 +458,13 @@ class UIViewCreator: SJUIViewCreator {
   "custom_view_types": {
     "_comment": "カスタムビュータイプの設定例:",
     "_example": {
-      "Map": {
-        "class_name": "GMSMapView",
-        "import_module": "GoogleMaps"
+      "CustomButton": {
+        "class_name": "UIButton",
+        "import_module": "UIKit"
+      },
+      "WebView": {
+        "class_name": "WKWebView", 
+        "import_module": "WebKit"
       }
     }
   }
@@ -330,10 +476,6 @@ class UIViewCreator: SJUIViewCreator {
 ```json
 {
   "custom_view_types": {
-    "Map": {
-      "class_name": "GMSMapView",
-      "import_module": "GoogleMaps"
-    },
     "Chart": {
       "class_name": "LineChartView", 
       "import_module": "Charts"
@@ -341,6 +483,10 @@ class UIViewCreator: SJUIViewCreator {
     "WebView": {
       "class_name": "WKWebView",
       "import_module": "WebKit"
+    },
+    "CustomButton": {
+      "class_name": "UIButton",
+      "import_module": "UIKit"
     }
   }
 }
@@ -354,8 +500,8 @@ JSONレイアウトでの利用：
   "type": "SafeAreaView",
   "child": [
     {
-      "type": "Map",
-      "id": "google_map",
+      "type": "WebView",
+      "id": "web_view",
       "width": "matchParent", 
       "height": 200
     }
@@ -365,10 +511,10 @@ JSONレイアウトでの利用：
 
 自動生成されるBindingクラス：
 ```swift
-import GoogleMaps  // 自動追加
+import WebKit  // 自動追加
 
 class SampleBinding: BaseBinding {
-    weak var googleMap: GMSMapView!  // 自動生成
+    weak var webView: WKWebView!  // 自動生成
 }
 ```
 
@@ -402,12 +548,8 @@ func application(_:didFinishLaunchingWithOptions:) -> Bool {
     UIViewCreator.copyResourcesToDocuments()
     #if DEBUG
     HotLoader.instance.isHotLoadEnabled = true
-    
-    // Info.plistからIPアドレス自動取得
-    if let serverIP = Bundle.main.object(forInfoDictionaryKey: "HotLoadServerIP") as? String {
-        HotLoader.instance.serverURL = "http://\(serverIP):3000"
-    }
     #endif
+    return true
 }
 ```
 
@@ -437,14 +579,45 @@ JSONファイル編集 → 自動反映 → 即座確認
 #### 1. 初回セットアップ
 ```bash
 cd binding_builder
-./sjui setup  # HotLoad機能も自動設定される
+
+# 1. 設定ファイル作成
+./sjui init   # config.jsonの作成（プロジェクト設定の自動検出）
+
+# 2. config.jsonの編集（必要に応じて）
+# - プロジェクト名の調整
+# - ディレクトリ構成の変更
+# - カスタムビュータイプの追加
+# 詳細は「config.json設定リファレンス」を参照
+
+# 3. プロジェクト構造とBaseクラス生成
+./sjui setup  # ディレクトリ作成、Baseクラス生成、HotLoad機能設定
 ```
 
 #### 2. 開発開始
+
+##### HotLoad開発環境の起動
 ```bash
+# オプション1: HotLoad開発環境の完全起動（推奨）
+./sjui hotload listen
+# → HotLoadサーバー起動（ポート8081）
+# → IPアドレス自動更新
+# → バックグラウンド監視開始
+
+# オプション2: 手動でのHotLoad管理
+./sjui hotload daemon    # バックグラウンドで監視開始
+./sjui hotload status    # 状態確認
+./sjui hotload stop      # 停止
+
+# オプション3: 従来通りXcodeビルドに任せる
 # 通常通りXcodeでDebugビルド実行
 # → Build Phaseで自動的にHotLoadサーバー起動
-# → IPアドレス自動設定
+```
+
+##### 開発フロー
+```bash
+# XcodeでiOSアプリをDebugビルド・実行
+# ↓
+# JSONファイル編集 → 即座にアプリに反映
 ```
 
 #### 3. レイアウト編集
@@ -460,7 +633,7 @@ cd binding_builder
 ### 技術詳細
 
 #### Node.jsサーバー
-- **ポート**: 3000番（固定）
+- **ポート**: 8081番（固定）
 - **サーバー構成**: 
   - `server.js` - WebSocket/HTTP通信サーバー
   - `layout_loader.js` - JSONファイル変更監視
@@ -470,7 +643,7 @@ cd binding_builder
 
 #### ネットワーク要件
 - **同一WiFiネットワーク** - Mac（開発マシン）とiOS端末
-- **ファイアウォール** - ポート3000番への接続許可
+- **ファイアウォール** - ポート8081番への接続許可
 
 #### 自動検出システム
 ```bash
@@ -484,9 +657,9 @@ cd binding_builder
 
 #### HotLoadが動作しない場合
 1. **Node.js未インストール**: `brew install node`
-2. **ポート3000使用中**: 他のプロセスを確認
+2. **ポート8081使用中**: 他のプロセスを確認
 3. **WiFi接続確認**: Mac/iOSが同一ネットワーク
-4. **コンソール確認**: `HotLoad server configured: http://xxx.xxx.xxx.xxx:3000`
+4. **コンソール確認**: `HotLoad server configured: http://xxx.xxx.xxx.xxx:8081`
 
 #### Build Phase確認
 ```bash

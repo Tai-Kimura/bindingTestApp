@@ -14,6 +14,8 @@ if [ $# -eq 0 ]; then
     echo "  setup                 Create directories and add them to Xcode project"
     echo "  g view <view_name> [--root]    Generate view controller and layout files"
     echo "  generate view <name> [--root]  Generate view controller and layout files (alias for g)"
+    echo "  g collection <ViewFolder>/<CellName>    Generate collection view cell"
+    echo "  generate collection <ViewFolder>/<CellName>    Generate collection view cell (alias for g)"
     echo "  d view <view_name>    Destroy view controller and layout files"
     echo "  destroy view <name>   Destroy view controller and layout files (alias for d)"
     echo "  b                     Build binding files from JSON layouts"
@@ -266,10 +268,29 @@ generator = ViewGenerator.new('$VIEW_GEN_PROJECT_FILE')
 generator.generate('$VIEW_NAME', $IS_ROOT)
 "
                 ;;
+            "collection")
+                if [ $# -eq 0 ]; then
+                    echo "Usage: sjui $COMMAND collection <ViewFolder>/<CellName>"
+                    echo "Example: sjui $COMMAND collection Sample/SampleList"
+                    exit 1
+                fi
+                
+                COLLECTION_ARGS="$1"
+                
+                # Execute the Ruby collection generator with project file path
+                # CollectionGenerator needs the full project.pbxproj path, not just the .xcodeproj directory
+                COLLECTION_GEN_PROJECT_FILE="$PROJECT_FILE/project.pbxproj"
+                ruby -e "
+require '$SCRIPT_DIR/xcode_project/generators/collection_generator'
+generator = CollectionGenerator.new('$COLLECTION_GEN_PROJECT_FILE')
+generator.generate('$COLLECTION_ARGS')
+"
+                ;;
             *)
                 echo "Unknown subcommand: $SUBCOMMAND"
                 echo "Available subcommands for '$COMMAND':"
                 echo "  view <view_name>    Generate view controller and layout files"
+                echo "  collection <ViewFolder>/<CellName>    Generate collection view cell"
                 exit 1
                 ;;
         esac

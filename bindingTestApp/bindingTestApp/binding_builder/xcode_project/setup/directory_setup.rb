@@ -34,9 +34,7 @@ class DirectorySetup < PbxprojManager
     check_and_add_directory(@paths.ui_path, "UI", directories_to_create)
     check_and_add_directory(@paths.base_path, "Base", directories_to_create)
     
-    if directories_to_create.empty?
-      puts "All directories already exist. No action needed."
-    else
+    unless directories_to_create.empty?
       # ディレクトリを作成
       directories_to_create.each do |dir_info|
         FileUtils.mkdir_p(dir_info[:path])
@@ -45,10 +43,10 @@ class DirectorySetup < PbxprojManager
       
       # Xcodeプロジェクトに追加
       add_directories_to_xcode_project(directories_to_create)
-      
-      # Coreファイルの生成
-      create_core_files_if_needed(directories_to_create)
     end
+    
+    # ディレクトリが作成されたかどうかに関係なく、必要なCoreファイルをチェック・作成
+    create_core_files_if_needed
     
     puts "Directory creation completed successfully!"
   end
@@ -91,47 +89,72 @@ class DirectorySetup < PbxprojManager
 
 
 
-  def create_core_files_if_needed(directories_to_create)
-    core_created = directories_to_create.any? { |dir| dir[:name] == "Core" }
-    ui_created = directories_to_create.any? { |dir| dir[:name] == "UI" }
-    base_created = directories_to_create.any? { |dir| dir[:name] == "Base" }
+  def create_core_files_if_needed
+    puts "Checking for missing core files..."
+    created_files = []
     
-    if core_created || ui_created || base_created
-      puts "Creating core files..."
-      created_files = []
-      
-      # UIViewCreator.swift を作成
-      if ui_created
+    # ディレクトリの存在をチェック
+    ui_exists = Dir.exist?(@paths.ui_path)
+    base_exists = Dir.exist?(@paths.base_path)
+    
+    # UIViewCreator.swift をチェック・作成
+    if ui_exists
+      ui_view_creator_file = File.join(@paths.ui_path, "UIViewCreator.swift")
+      unless File.exist?(ui_view_creator_file)
+        puts "  Missing: UIViewCreator.swift"
         ui_generator = UIViewCreatorGenerator.new(@project_file_path)
         ui_view_creator_path = ui_generator.generate(@paths.ui_path)
         created_files << ui_view_creator_path if ui_view_creator_path
+      else
+        puts "  Exists: UIViewCreator.swift"
       end
-      
-      # BaseViewController.swift を作成
-      if base_created
+    end
+    
+    # BaseViewController.swift をチェック・作成
+    if base_exists
+      base_vc_file = File.join(@paths.base_path, "BaseViewController.swift")
+      unless File.exist?(base_vc_file)
+        puts "  Missing: BaseViewController.swift"
         base_vc_generator = BaseViewControllerGenerator.new(@project_file_path)
         base_view_controller_path = base_vc_generator.generate(@paths.base_path)
         created_files << base_view_controller_path if base_view_controller_path
+      else
+        puts "  Exists: BaseViewController.swift"
       end
-      
-      # BaseBinding.swift を作成
-      if base_created
+    end
+    
+    # BaseBinding.swift をチェック・作成
+    if base_exists
+      base_binding_file = File.join(@paths.base_path, "BaseBinding.swift")
+      unless File.exist?(base_binding_file)
+        puts "  Missing: BaseBinding.swift"
         base_binding_generator = BaseBindingGenerator.new(@project_file_path)
         base_binding_path = base_binding_generator.generate(@paths.base_path)
         created_files << base_binding_path if base_binding_path
+      else
+        puts "  Exists: BaseBinding.swift"
       end
-      
-      # BaseCollectionViewCell.swift を作成
-      if base_created
+    end
+    
+    # BaseCollectionViewCell.swift をチェック・作成
+    if base_exists
+      base_cell_file = File.join(@paths.base_path, "BaseCollectionViewCell.swift")
+      unless File.exist?(base_cell_file)
+        puts "  Missing: BaseCollectionViewCell.swift"
         base_cell_generator = BaseCollectionViewCellGenerator.new(@project_file_path)
         base_cell_path = base_cell_generator.generate(@paths.base_path)
         created_files << base_cell_path if base_cell_path
+      else
+        puts "  Exists: BaseCollectionViewCell.swift"
       end
-      
-      # 作成されたファイルをXcodeプロジェクトに追加
-      unless created_files.empty?
-        add_core_files_to_xcode_project(created_files)
-      end
+    end
+    
+    # 作成されたファイルをXcodeプロジェクトに追加
+    unless created_files.empty?
+      puts "Created #{created_files.size} missing core files"
+      add_core_files_to_xcode_project(created_files)
+    else
+      puts "All core files already exist"
     end
   end
 

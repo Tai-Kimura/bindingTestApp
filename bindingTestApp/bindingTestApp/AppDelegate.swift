@@ -2,15 +2,16 @@
 //  AppDelegate.swift
 //  bindingTestApp
 //
-//  Created by 木村太一朗 on 2025/07/27.
+//  Created by 木村太一朗 on 2025/07/29.
 //
 
 import UIKit
-import SwiftJsonUI
 import CoreData
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
+
+
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.

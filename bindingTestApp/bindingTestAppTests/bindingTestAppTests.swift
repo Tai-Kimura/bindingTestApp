@@ -2,7 +2,7 @@
 //  bindingTestAppTests.swift
 //  bindingTestAppTests
 //
-//  Created by 木村太一朗 on 2025/07/27.
+//  Created by 木村太一朗 on 2025/07/29.
 //
 
 import XCTest

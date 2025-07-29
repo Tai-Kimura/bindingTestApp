@@ -1,0 +1,38 @@
+# Xcode
+*.xcodeproj/*
+!*.xcodeproj/project.pbxproj
+!*.xcodeproj/xcshareddata/
+!*.xcodeproj/project.xcworkspace/
+*.xcworkspace/*
+!*.xcworkspace/contents.xcworkspacedata
+
+# User settings
+xcuserdata/
+
+# Derived data
+DerivedData/
+
+# Build products
+build/
+*.ipa
+*.app
+
+# CocoaPods
+Pods/
+Podfile.lock
+
+# Swift Package Manager
+.build/
+Package.resolved
+
+# Node.js
+bindingTestApp/bindingTestApp/hot_loader/node_modules/*
+
+# Log files
+*.log
+bindingTestApp/bindingTestApp/binding_builder/build_output.log
+bindingTestApp/bindingTestApp/binding_builder/scripts/.current_ip
+
+# Local settings
+*.local.json
+.claude/settings.local.json

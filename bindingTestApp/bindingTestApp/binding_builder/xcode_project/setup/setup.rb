@@ -125,7 +125,7 @@ end
 if __FILE__ == $0
   begin
     # binding_builderディレクトリから検索開始
-    binding_builder_dir = File.expand_path("../../", __FILE__)
+    binding_builder_dir = File.expand_path("../../../", __FILE__)
     project_file_path = ProjectFinder.find_project_file(binding_builder_dir)
     setup = Setup.new(project_file_path)
     setup.run_full_setup

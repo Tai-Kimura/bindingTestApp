@@ -223,13 +223,13 @@ EOF
         fi
         ;;
     "setup")
-        # Execute the Ruby directory setup script with project file path
-        # DirectorySetup needs the full project.pbxproj path, not just the .xcodeproj directory
+        # Execute the Ruby setup script with project file path
+        # Setup needs the full project.pbxproj path, not just the .xcodeproj directory
         SETUP_PROJECT_FILE="$PROJECT_FILE/project.pbxproj"
         ruby -e "
-require '$SCRIPT_DIR/xcode_project/setup/directory_setup'
-setup = DirectorySetup.new(\"$SETUP_PROJECT_FILE\")
-setup.create_missing_directories
+require '$SCRIPT_DIR/xcode_project/setup/setup'
+setup = Setup.new(\"$SETUP_PROJECT_FILE\")
+setup.run_full_setup
 "
         ;;
     "g"|"generate")

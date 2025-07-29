@@ -19,7 +19,8 @@ class ConfigManager
       'add_to_xcode_project' => true
     },
     'custom_view_types' => {},
-    'hot_loader_directory' => ''
+    'hot_loader_directory' => '',
+    'use_network' => true
   }.freeze
 
   def self.load_config(base_dir = nil)
@@ -123,5 +124,11 @@ class ConfigManager
     else
       hot_loader_dir
     end
+  end
+  
+  def self.get_use_network(base_dir = nil)
+    config = load_config(base_dir)
+    # デフォルトでtrueを返す
+    config.fetch('use_network', true)
   end
 end

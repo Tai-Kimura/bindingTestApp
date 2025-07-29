@@ -213,7 +213,8 @@ case "$COMMAND" in
       }
     }
   },
-  "hot_loader_directory": "$HOT_LOADER_DIR"
+  "hot_loader_directory": "$HOT_LOADER_DIR",
+  "use_network": true
 }
 EOF
         echo "config.json created successfully at $CONFIG_FILE"

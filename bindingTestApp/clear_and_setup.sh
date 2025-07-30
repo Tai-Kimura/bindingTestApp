@@ -15,7 +15,17 @@ rm -rf hot_loader
 cp -r ~/resource/SwiftJsonUI/installer .
 cd installer
 ./install_sjui.sh -v 6.1.0 --skip-bundle
-cd ../binding_builder/
+
+# Create SPM directory structure to prevent Xcode error
+cd ~/resource/bindingTestApp/bindingTestApp
+mkdir -p bindingTestApp.xcodeproj/project.xcworkspace/xcshareddata/swiftpm
+echo '{
+  "pins" : [
+  ],
+  "version" : 2
+}' > bindingTestApp.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
+
+cd ~/resource/bindingTestApp/bindingTestApp/bindingTestApp/binding_builder/
 ./sjui setup
 ./sjui g view splash --root
 ./sjui g partial partial_test

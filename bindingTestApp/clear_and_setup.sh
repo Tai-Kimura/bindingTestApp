@@ -6,7 +6,11 @@ git clean -fd
 
 # Clear SPM cache
 rm -rf ~/Library/Caches/org.swift.swiftpm
+rm -rf ~/Library/Developer/Xcode/DerivedData
 rm -rf .build
+rm -rf .swiftpm
+swift package reset
+swift package clean
 
 cd ~/resource/bindingTestApp/bindingTestApp/bindingTestApp
 cp -r ~/resource/SwiftJsonUI/installer .

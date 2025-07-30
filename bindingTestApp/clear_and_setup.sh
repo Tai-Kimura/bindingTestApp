@@ -7,11 +7,6 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 git reset --hard HEAD
 git clean -fd
 
-# Clear SPM cache
-rm -rf ~/Library/Caches/org.swift.swiftpm
-rm -rf ~/Library/Developer/Xcode/DerivedData
-rm -rf .build
-
 cd "$SCRIPT_DIR/bindingTestApp"
 rm -rf binding_builder
 rm -rf hot_loader
@@ -19,15 +14,6 @@ rm -rf hot_loader
 # Download installer from GitHub
 echo "Downloading SwiftJsonUI installer..."
 curl -fsSL https://raw.githubusercontent.com/Tai-Kimura/SwiftJsonUI/master/installer/bootstrap.sh | bash -s -- -v 6.1.0 --skip-bundle
-
-# Create SPM directory structure to prevent Xcode error
-cd "$SCRIPT_DIR"
-mkdir -p bindingTestApp.xcodeproj/project.xcworkspace/xcshareddata/swiftpm
-echo '{
-  "pins" : [
-  ],
-  "version" : 2
-}' > bindingTestApp.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
 
 cd "$SCRIPT_DIR/bindingTestApp/binding_builder/"
 ./sjui setup

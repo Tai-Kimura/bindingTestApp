@@ -30,3 +30,8 @@ cd ~/resource/bindingTestApp/bindingTestApp/bindingTestApp/binding_builder/
 ./sjui g view splash --root
 ./sjui g partial partial_test
 ./sjui g partial common/navigation_bar
+
+# Start hot loader listener
+echo "Starting hot loader listener..."
+./sjui hotloader listen &
+echo "Hot loader listener started"

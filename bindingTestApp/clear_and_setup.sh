@@ -33,5 +33,5 @@ cd ~/resource/bindingTestApp/bindingTestApp/bindingTestApp/binding_builder/
 
 # Start hot loader listener
 echo "Starting hot loader listener..."
-./sjui hotloader listen &
+./sjui hotload listen &
 echo "Hot loader listener started"

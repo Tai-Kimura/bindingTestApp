@@ -20,6 +20,8 @@ cd "$SCRIPT_DIR/bindingTestApp/binding_builder/"
 ./sjui g view splash --root
 ./sjui g partial partial_test
 ./sjui g partial common/navigation_bar
+./sjui g view main
+./sjui g collection Main/ListItem
 
 # Start hot loader listener
 echo "Starting hot loader listener..."

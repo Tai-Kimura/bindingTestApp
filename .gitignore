@@ -5,9 +5,11 @@
 !*.xcodeproj/project.xcworkspace/
 *.xcworkspace/*
 !*.xcworkspace/contents.xcworkspacedata
+!*.xcworkspace/xcshareddata/
 
-# User settings
+# User settings (but keep shared schemes)
 xcuserdata/
+!*.xcodeproj/xcshareddata/xcschemes/
 
 # Derived data
 DerivedData/

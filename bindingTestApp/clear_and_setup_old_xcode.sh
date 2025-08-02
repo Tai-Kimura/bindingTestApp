@@ -13,7 +13,7 @@ rm -rf hot_loader
 cd ..
 # Download installer from GitHub
 echo "Downloading SwiftJsonUI installer..."
-curl -fsSL https://raw.githubusercontent.com/Tai-Kimura/SwiftJsonUI/master/installer/bootstrap.sh | bash -s -- -v 6.3.0-alpha -d ./bindingTestApp --skip-bundle
+curl -fsSL https://raw.githubusercontent.com/Tai-Kimura/SwiftJsonUI/master/installer/bootstrap.sh | bash -s -- -v 6.3.0 -d ./bindingTestApp --skip-bundle
 
 cd "$SCRIPT_DIR/bindingTestApp/binding_builder/"
 

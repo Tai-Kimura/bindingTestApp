@@ -8,29 +8,28 @@ git reset --hard HEAD
 git clean -fd
 
 cd "$SCRIPT_DIR/bindingTestApp"
-rm -rf binding_builder
-rm -rf hot_loader
+rm -rf sjui_tools
 cd ..
 # Download installer from GitHub
 echo "Downloading SwiftJsonUI installer..."
-curl -fsSL https://raw.githubusercontent.com/Tai-Kimura/SwiftJsonUI/master/installer/bootstrap.sh | bash -s -- -v 6.3.0 -d ./bindingTestApp --skip-bundle
+curl -fsSL https://raw.githubusercontent.com/Tai-Kimura/SwiftJsonUI/master/installer/bootstrap.sh | bash -s -- -v 7.0.0-alpha -d ./bindingTestApp --skip-bundle
 
-cd "$SCRIPT_DIR/bindingTestApp/binding_builder/"
+cd "$SCRIPT_DIR/bindingTestApp/"
 
 # Convert Xcode 16 synchronized folders to group references (if needed)
 echo "Converting Xcode project to group references..."
-./sjui convert to-group --force
+./sjui_tools/bin/sjui convert to-group --force
 
 # Continue with setup
-./sjui setup
-./sjui g view splash --root
-./sjui g partial partial_test
-./sjui g partial common/navigation_bar
-./sjui g view main
-./sjui g collection Main/ListItem
+./sjui_tools/bin/sjui setup
+./sjui_tools/bin/sjui g view splash --root
+./sjui_tools/bin/sjui g partial partial_test
+./sjui_tools/bin/sjui g partial common/navigation_bar
+./sjui_tools/bin/sjui g view main
+./sjui_tools/bin/sjui g collection Main/ListItem
 
 
 # Start hot loader listener
 echo "Starting hot loader listener..."
-./sjui hotload listen &
+./sjui_tools/bin/sjui hotload listen &
 echo "Hot loader listener started"

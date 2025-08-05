@@ -2,7 +2,7 @@
 //  AppDelegate.swift
 //  bindingTestApp
 //
-//  Created by 木村太一朗 on 2025/07/29.
+//  Created by 木村太一朗 on 2025/08/06.
 //
 
 import UIKit

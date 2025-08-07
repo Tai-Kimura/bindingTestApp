@@ -1,0 +1,15 @@
+{
+  "originHash" : "cf93a7aeccad59746ef11a1332195cdcc778245589ba03773f0f2fe6a47fc9f6",
+  "pins" : [
+    {
+      "identity" : "simpleapinetwork",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Tai-Kimura/SimpleApiNetwork",
+      "state" : {
+        "revision" : "a6111f06c1de50fffcc5cacde017e343f2a63a26",
+        "version" : "2.1.8"
+      }
+    }
+  ],
+  "version" : 3
+}

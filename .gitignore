@@ -25,7 +25,7 @@ Podfile.lock
 
 # Swift Package Manager
 .build/
-Package.resolved
+# Package.resolved  # コメントアウト: Xcodeプロジェクトで必要
 
 # Node.js
 bindingTestApp/bindingTestApp/hot_loader/node_modules/*

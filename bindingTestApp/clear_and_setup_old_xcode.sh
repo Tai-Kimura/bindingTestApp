@@ -12,7 +12,7 @@ rm -rf sjui_tools
 cd ..
 # Download installer from GitHub
 echo "Downloading SwiftJsonUI installer..."
-curl -fsSL https://raw.githubusercontent.com/Tai-Kimura/SwiftJsonUI/master/installer/bootstrap.sh | bash -s -- -v 7.0.0-alpha -d ./bindingTestApp --skip-bundle
+curl -fsSL https://raw.githubusercontent.com/Tai-Kimura/SwiftJsonUI/7.0.0-beta/installer/bootstrap.sh | bash -s -- -v 7.0.0-beta -d ./bindingTestApp --skip-bundle
 
 cd "$SCRIPT_DIR/bindingTestApp/"
 
